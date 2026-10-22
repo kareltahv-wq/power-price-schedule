@@ -1,0 +1,127 @@
+/**
+ * Genesis interface defaults, folded in from the Vercel Web Interface
+ * Guidelines (vercel-labs/web-interface-guidelines).
+ *
+ * WHY THIS FILE EXISTS SEPARATELY FROM index.css: the anchor is the scaffold,
+ * not the prompt (the same lesson that produced the seeded palette families).
+ * A rule stated in the prompt costs cache-churn once and is then obeyed at the
+ * model's discretion; a rule shipped as a default is obeyed by every app for
+ * zero tokens. `index.css` cannot be that home - it is the theme file every
+ * retheme rewrites, and `seedIndexCss` stores an app's whole creation-era copy
+ * as commit 0, so later improvements there never reach a seeded app. This file
+ * is protected (`protectedFilePaths.mts`) and imported by the protected
+ * `main.tsx`, so it survives both a retheme and a template-bump replay.
+ *
+ * WHY THE `genesis-` PREFIX: `protectedFilePaths` only blocks FUTURE writes.
+ * A template-bump replay re-applies every HISTORICAL op and skips only
+ * `isReservedFilePath` (which is `package.json` alone), so an app that had
+ * already authored a file at this path would replay its own copy OVER the
+ * template's while the protected `main.tsx` still imported it - the app would
+ * silently get stale content at a template-owned path. A generic name like
+ * `src/styles/base.css` is plausible for a model to invent; `genesis-base.css`
+ * matches the namespace the template already uses for its owned modules
+ * (`genesis.tsx`, `genesis-auth.tsx`, `genesis-gateway.ts`, `genesis-data/`,
+ * `genesis-flows/`) and collides with nothing.
+ *
+ * EVERY RULE HERE IS A ZERO-REGRESSION DEFAULT, not a style opinion. Selectors
+ * are wrapped in `:where()` so their specificity is 0 and any Tailwind utility
+ * the app author writes still wins. Nothing here changes how an existing app
+ * renders unless that app had specified nothing at all for the property.
+ */
+
+/*
+ * WIG "Interactions > Targets & Input": MUST `touch-action: manipulation` to
+ * prevent double-tap zoom, SHOULD set `-webkit-tap-highlight-color` to match
+ * the design. Together these remove the ~300ms synthetic click delay and the
+ * grey iOS tap flash on every control. Genesis apps are mobile-first and most
+ * of their users never hover, so this lands on the primary input path.
+ */
+:where(a, button, label, select, summary, input, textarea),
+:where([role='button'], [role='tab'], [role='menuitem'], [role='option']) {
+  touch-action: manipulation;
+}
+
+:where(html) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * WIG "Interactions > Keyboard": MUST visible focus rings, NEVER `outline:
+ * none` without a visible replacement.
+ *
+ * This is a FALLBACK, not an override. The doubled `:where()` pins specificity
+ * at 0-0-0, so the shadcn primitives - which pair `outline-none` with their own
+ * `focus-visible:ring-*` - keep their exact ring and never render two. It fires
+ * only on a control the app author left with no focus treatment at all, which
+ * is the case the guideline is actually about: a hand-authored
+ * `<button className="px-3">` is keyboard-invisible today and gets a real ring
+ * here. `--ring` is a seeded palette token, so the ring is on-family per app.
+ */
+:where(a, button, summary, [role='button'], [tabindex]):where(:focus-visible) {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/*
+ * WIG "Content & Accessibility": MUST `scroll-margin-top` on headings (so an
+ * in-page anchor jump does not land the heading flush under a sticky header),
+ * SHOULD avoid widows/orphans with `text-wrap: balance`. `pretty` on body copy
+ * is the same rule at prose scale - it only rebalances the last few lines.
+ */
+:where(h1, h2, h3, h4, h5, h6) {
+  scroll-margin-top: 5rem;
+  text-wrap: balance;
+}
+
+:where(p, li, dd, figcaption, blockquote) {
+  text-wrap: pretty;
+}
+
+/*
+ * WIG "Dark Mode & Theming": MUST give a native `<select>` an explicit
+ * `background-color` and `color`. Without both, Windows renders the popup list
+ * with system-light chrome on a dark-themed app - the options are white-on-white
+ * and effectively invisible. The shadcn `Select` is a div tree and is
+ * unaffected; this covers the plain `<select>` a model reaches for on a simple
+ * filter row.
+ */
+:where(select) {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+/*
+ * Chat scrollbars follow the palette, not the UA `color-scheme`.
+ * The dark default writes `color-scheme: dark` on `<html>`, so a light
+ * palette under `.dark` got dark native scrollbars in the chat transcript.
+ * Scoped to the chat panel: in Chromium a non-auto value turns off
+ * `::-webkit-scrollbar` rules, so app-wide it would break an app's own ones.
+ */
+:where([data-genesis-block='ai-assistant-panel'] *) {
+  scrollbar-color: hsl(var(--muted-foreground) / 0.45) transparent;
+  scrollbar-width: thin;
+}
+
+/*
+ * WIG "Animation": MUST honor `prefers-reduced-motion`.
+ *
+ * Scoped to TRANSITIONS and scrolling on purpose - this block touches NO
+ * `animation-*` property at all. The usual blanket reset also collapses
+ * `animation-duration` and forces `animation-iteration-count: 1`, which freezes
+ * exactly the looping animations that are functional feedback in these apps -
+ * the Genesis spinner, `animate-spin` on a submit button, `animate-pulse` on a
+ * skeleton - and a frozen spinner reads as a hang, not as calm. Zeroing
+ * `animation-delay` is the same mistake in miniature: a deliberately staggered
+ * decorative reveal would fire all at once instead of being skipped, which is
+ * more motion for the user who asked for less. Keyframe animation stays the app
+ * author's job via Tailwind's `motion-reduce:` variant, which the design
+ * styleguide already prescribes.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
